@@ -14,23 +14,18 @@ const OTA_CHECK_CONFIG = {
   targetVersion: '1.0',
 };
 
-type StrapiBundleNode = {
+// Strapi v5: media objects are flat with `url` at top level.
+// Multi-media fields return an array of these objects.
+type StrapiMediaObject = {
   url?: string;
-  data?: {
-    attributes?: {
-      url?: string;
-    };
-  };
 };
 
+// Strapi v5: items are flat — no `attributes` wrapper.
 type StrapiItem = {
   id?: number;
+  documentId?: string;
   enable?: boolean;
-  bundle?: StrapiBundleNode;
-  attributes?: {
-    enable?: boolean;
-    bundle?: StrapiBundleNode;
-  };
+  bundle?: StrapiMediaObject | StrapiMediaObject[];
 };
 
 type StrapiResponse = {
@@ -43,13 +38,19 @@ type NormalizedStrapiItem = {
   bundleUrl?: string;
 };
 
-const getBundleUrl = (item: StrapiItem) => {
-  return (
-    item.bundle?.url ||
-    item.bundle?.data?.attributes?.url ||
-    item.attributes?.bundle?.url ||
-    item.attributes?.bundle?.data?.attributes?.url
-  );
+const getBundleUrl = (item: StrapiItem): string | undefined => {
+  const {bundle} = item;
+  if (!bundle) {
+    return undefined;
+  }
+
+  // Multi-media field: array of media objects
+  if (Array.isArray(bundle)) {
+    return bundle.find(m => m.url)?.url;
+  }
+
+  // Single media object
+  return bundle.url;
 };
 
 const normalizeItems = (response: StrapiResponse): NormalizedStrapiItem[] => {
@@ -58,7 +59,7 @@ const normalizeItems = (response: StrapiResponse): NormalizedStrapiItem[] => {
   return list
     .map(item => {
       const id = typeof item.id === 'number' ? item.id : 0;
-      const enable = item.enable ?? item.attributes?.enable ?? true;
+      const enable = item.enable ?? true;
 
       return {
         id,
