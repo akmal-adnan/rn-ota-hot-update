@@ -11,4 +11,5 @@ export type RootTabParamList = {
   [ROUTES.DASHBOARD_STACK]: NavigatorScreenParams<HomeStackParamList>;
   [ROUTES.PROFILE]: undefined;
   [ROUTES.CHECK_UPDATE]: undefined;
+  [ROUTES.CHECK_UPDATE_BACKEND]: undefined;
 };

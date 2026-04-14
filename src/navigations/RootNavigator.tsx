@@ -4,11 +4,17 @@ import {StyleSheet, View} from 'react-native';
 import {NavigationContainer} from '@react-navigation/native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import {ArrowDownCircle, House, ShieldCheck} from 'lucide-react-native';
+import {ArrowDownCircle, House, Server, ShieldCheck} from 'lucide-react-native';
 
 import {ROUTES} from '../constants/routes';
 import {theme} from '../theme';
-import {AccountDetails, CheckUpdate, Home, Profile} from '../screens';
+import {
+  AccountDetails,
+  CheckUpdate,
+  CheckUpdateBackend,
+  Home,
+  Profile,
+} from '../screens';
 import {HomeStackParamList, RootTabParamList} from './types';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -53,6 +59,18 @@ const CheckUpdateTabIcon = ({color, size}: {color: string; size: number}) => (
   </View>
 );
 
+const CheckUpdateBackendTabIcon = ({
+  color,
+  size,
+}: {
+  color: string;
+  size: number;
+}) => (
+  <View style={styles.updateIconWrap}>
+    <Server color={color} size={size} />
+  </View>
+);
+
 export const RootNavigator = () => {
   return (
     <NavigationContainer>
@@ -85,6 +103,14 @@ export const RootNavigator = () => {
           options={{
             tabBarLabel: 'Check Update',
             tabBarIcon: CheckUpdateTabIcon,
+          }}
+        />
+        <Tab.Screen
+          name={ROUTES.CHECK_UPDATE_BACKEND}
+          component={CheckUpdateBackend}
+          options={{
+            tabBarLabel: 'Backend OTA',
+            tabBarIcon: CheckUpdateBackendTabIcon,
           }}
         />
       </Tab.Navigator>

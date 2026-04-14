@@ -4,4 +4,5 @@ export const ROUTES = {
   ACCOUNT_DETAILS: 'AccountDetails',
   PROFILE: 'Profile',
   CHECK_UPDATE: 'CheckUpdate',
+  CHECK_UPDATE_BACKEND: 'CheckUpdateBackend',
 } as const;
