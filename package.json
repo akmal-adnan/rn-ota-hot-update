@@ -22,7 +22,7 @@
     "react-native": "0.77.0",
     "react-native-blob-util": "^0.24.7",
     "react-native-device-info": "^15.0.2",
-    "react-native-ota-hot-update": "^2.4.0",
+    "react-native-ota-hot-update": "github:akmal-adnan/react-native-ota-hot-update#feat/sha256_check",
     "react-native-safe-area-context": "5.4.1",
     "react-native-screens": "4.4.0",
     "react-native-svg": "15.12.1"

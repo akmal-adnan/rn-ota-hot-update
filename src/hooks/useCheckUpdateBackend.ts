@@ -10,7 +10,7 @@ const OTA_BACKEND_CONFIG = {
   // Manifest-like endpoint returning version + platform URLs.
   manifestPath: '/api/updates/latest',
   // Prototype only. Move to env var for production.
-  otaKey: '5a555bc3303689963bf9909ef63dc50f9310bdd3bab4a550bf570f14b4e93627',
+  otaKey: '9d855a3ca07dd55f905078a06e5f2c8419aae47a9746982c739c55acca3dec8e',
   maxBundleVersions: 3,
 };
 
@@ -25,6 +25,7 @@ type ResponseData = {
 type PendingUpdate = {
   bundleUrl: string;
   version: number;
+  sha256?: string;
 };
 
 const base = OTA_BACKEND_CONFIG.serverBaseUrl;
@@ -35,6 +36,10 @@ const pickBundleUrl = (manifest: ResponseData): string | undefined => {
   return Platform.OS === 'ios'
     ? manifest.downloadIosUrl
     : manifest.downloadAndroidUrl;
+};
+
+const pickSha256 = (manifest: ResponseData): string | undefined => {
+  return Platform.OS === 'ios' ? manifest.sha256Ios : manifest.sha256Android;
 };
 
 export type CheckUpdateBackendStatus =
@@ -141,6 +146,7 @@ export const useCheckUpdateBackend = (): CheckUpdateBackendResult => {
       const data = (await response.json()) as ResponseData;
       const remoteVersion = Number(data.version);
       const bundleUrl = pickBundleUrl(data);
+      const sha256 = pickSha256(data);
 
       setCheckedAt(now);
 
@@ -158,6 +164,7 @@ export const useCheckUpdateBackend = (): CheckUpdateBackendResult => {
         pendingUpdateRef.current = {
           bundleUrl,
           version: remoteVersion,
+          sha256,
         };
         setStatus('updateAvailable');
         setMessage(
@@ -190,51 +197,57 @@ export const useCheckUpdateBackend = (): CheckUpdateBackendResult => {
       return;
     }
 
-    const {bundleUrl, version} = pending;
+    const {bundleUrl, version, sha256} = pending;
 
     setStatus('downloading');
     setDownloadProgress(0);
     setMessage(`Downloading bundle version ${version}...`);
 
     try {
-      OtaHotUpdate.downloadBundleUri(ReactNativeBlobUtil, bundleUrl, version, {
-        progress(received, total) {
-          const pct = +total > 0 ? Math.round((+received / +total) * 100) : 0;
-          setDownloadProgress(pct);
-          setMessage(`Downloading... ${pct}%`);
+      OtaHotUpdate.downloadBundleUri(
+        ReactNativeBlobUtil,
+        bundleUrl,
+        version,
+        sha256,
+        {
+          progress(received, total) {
+            const pct = +total > 0 ? Math.round((+received / +total) * 100) : 0;
+            setDownloadProgress(pct);
+            setMessage(`Downloading... ${pct}%`);
+          },
+          updateSuccess() {
+            pendingUpdateRef.current = null;
+            setCurrentVersion(version);
+            setDownloadProgress(100);
+            setStatus('installed');
+            setMessage(
+              `Bundle version ${version} installed successfully. Restart to apply.`,
+            );
+            Alert.alert(
+              'Update Installed',
+              'The app needs to restart to apply the update. Restart now?',
+              [
+                {text: 'Later', style: 'cancel'},
+                {
+                  text: 'Restart',
+                  onPress: () => OtaHotUpdate.resetApp(),
+                },
+              ],
+            );
+          },
+          updateFail(errorMsg) {
+            setStatus('error');
+            setDownloadProgress(0);
+            setMessage(`Install failed: ${errorMsg || 'Unknown error'}`);
+          },
+          restartAfterInstall: false,
+          maxBundleVersions: OTA_BACKEND_CONFIG.maxBundleVersions,
+          metadata: {
+            source: 'backend-manifest',
+            version,
+          },
         },
-        updateSuccess() {
-          pendingUpdateRef.current = null;
-          setCurrentVersion(version);
-          setDownloadProgress(100);
-          setStatus('installed');
-          setMessage(
-            `Bundle version ${version} installed successfully. Restart to apply.`,
-          );
-          Alert.alert(
-            'Update Installed',
-            'The app needs to restart to apply the update. Restart now?',
-            [
-              {text: 'Later', style: 'cancel'},
-              {
-                text: 'Restart',
-                onPress: () => OtaHotUpdate.resetApp(),
-              },
-            ],
-          );
-        },
-        updateFail(errorMsg) {
-          setStatus('error');
-          setDownloadProgress(0);
-          setMessage(`Install failed: ${errorMsg || 'Unknown error'}`);
-        },
-        restartAfterInstall: false,
-        maxBundleVersions: OTA_BACKEND_CONFIG.maxBundleVersions,
-        metadata: {
-          source: 'backend-manifest',
-          version,
-        },
-      });
+      );
     } catch (error) {
       const errorMessage =
         error instanceof Error
