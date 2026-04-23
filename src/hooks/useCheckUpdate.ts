@@ -234,6 +234,7 @@ export const useCheckUpdate = (): CheckUpdateResult => {
         ReactNativeBlobUtil,
         fullUrl,
         version,
+        undefined,
         {
           progress(received, total) {
             const pct = +total > 0 ? Math.round((+received / +total) * 100) : 0;
